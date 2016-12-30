@@ -1,0 +1,6 @@
+[Unit]
+Description=Dashcam backup service
+
+[Service]
+Type=simple
+ExecStart=/usr/local/bin/updash %I

@@ -1,0 +1,72 @@
+#! /bin/bash
+
+FOOTAGE_DIR="/mnt/nfs/"
+SUBDIR=$(date +%F)
+LOCKFILE="/var/run/updash.lock"
+VIDEO_EXTENSION=".mp4"
+
+log()
+{
+	logger -t "updash[$$]" -- "$1"
+	#echo $1
+}
+
+if [ -n "$1" ]
+then
+	DEVNAME=$1
+	log "updash started for dev $DEVNAME"
+else
+	log "No device specified"
+	exit 1
+fi
+
+eval "exec 99>$LOCKFILE"
+if ! flock -x -w 600 99
+then
+	log "Could not get lock"
+	exit 2
+fi
+
+log "Executing udevil mount $DEVNAME"
+
+if ! UDEVIL=$(udevil mount $DEVNAME)
+then
+	log "Mount failed"
+	exit 3
+fi
+
+MOUNTPOINT=$(echo $UDEVIL | awk '{ print $4 }')
+
+if [ ! -d $FOOTAGE_DIR$SUBDIR ]
+then
+	mkdir $FOOTAGE_DIR$SUBDIR
+fi
+
+log "Copying files"
+if ! FILELIST=$(find $MOUNTPOINT -iname '*$VIDEO_EXTENSION' -print -exec cp {} $FOOTAGE_DIR$SUBDIR \;)
+then
+	log "Copy failed. Unmounting"
+	udevil umount $DEVNAME
+	exit 5
+fi
+
+sync
+
+if [ -n $FILELIST ]
+then
+   log "Deleting files from camera"
+   if ! echo $FILELIST | xargs rm -v
+   then
+      log "Failed to delete some files"
+   fi
+else
+   log "No video files found"
+fi
+
+if udevil umount $DEVNAME
+then
+	log "unmount of $DEVNAME successful"
+else
+	log "unmount of $DEVNAME unsuccessful"
+	exit 4
+fi

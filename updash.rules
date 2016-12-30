@@ -1,0 +1,4 @@
+# Rules for updash
+KERNEL=="sd*", DRIVERS=="sbp2",		ACTION=="add",	TAG+="systemd", ENV{SYSTEMD_WANTS}="updash@%E{DEVNAME}.service"
+KERNEL=="sd*", SUBSYSTEMS=="usb",	ACTION=="add",	TAG+="systemd", ENV{SYSTEMD_WANTS}="updash@%E{DEVNAME}.service"
+KERNEL=="ub*", SUBSYSTEMS=="usb",	ACTION=="add",	TAG+="systemd", ENV{SYSTEMD_WANTS}="updash@%E{DEVNAME}.service"
